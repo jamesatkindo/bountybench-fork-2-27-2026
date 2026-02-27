@@ -80,7 +80,10 @@ class ModelResourceConfig(BaseResourceConfig):
         if self.max_output_tokens <= 0:
             raise ValueError("max_output_tokens must be positive")
         if not self.use_mock_model:
-            verify_and_auth_api_key(self.model, self.use_helm)
+            # Skip remote API key verification for local vLLM models
+            model_prefix = self.model.split("/")[0].lower() if "/" in self.model else ""
+            if model_prefix != "vllm":
+                verify_and_auth_api_key(self.model, self.use_helm)
 
 
 class ModelResponseFailure(Exception):
@@ -168,6 +171,10 @@ class ModelResource(RunnableBaseResource):
                 from resources.model_resource.xai_models.xai_models import XAIModels
 
                 model_provider = XAIModels()
+            elif model_prefix == "vllm":
+                from resources.model_resource.vllm_models.vllm_models import VLLMModels
+
+                model_provider = VLLMModels()
             else:
                 raise Exception(f"Unknown model type: {self.model}")
         return model_provider

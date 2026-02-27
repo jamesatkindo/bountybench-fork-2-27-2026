@@ -19,7 +19,7 @@ FPR=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr:/ {print $10; exit}'
 pass init "$FPR" && \
 curl -fsSL "$(curl -s https://api.github.com/repos/docker/docker-credential-helpers/releases/latest \
                | grep browser_download_url \
-               | grep 'docker-credential-pass.*linux-arm64' \
+               | grep 'docker-credential-pass.*linux-amd64' \
                | cut -d '"' -f 4)" \
      -o /usr/local/bin/docker-credential-pass && \
 chmod +x /usr/local/bin/docker-credential-pass && \
@@ -50,6 +50,22 @@ else
         exit 1
     fi
     echo "[entrypoint] Docker daemon is running."
+fi
+
+# Load bountyagent image into DinD if not already present
+if ! docker image inspect cybench/bountyagent:latest > /dev/null 2>&1; then
+    if [ -f /app/bountyagent.tar ]; then
+        echo "[entrypoint] Loading cybench/bountyagent:latest from tar..."
+        docker load -i /app/bountyagent.tar
+        echo "[entrypoint] bountyagent image loaded."
+    else
+        echo "[entrypoint] WARNING: No bountyagent.tar found and image not present."
+        echo "[entrypoint] Attempting to build from Dockerfile..."
+        docker build -t cybench/bountyagent:latest -f /app/Dockerfile /app/ || \
+            echo "[entrypoint] WARNING: Build failed. Tasks requiring Kali container will fail."
+    fi
+else
+    echo "[entrypoint] cybench/bountyagent:latest already exists."
 fi
 
 echo "[entrypoint] Starting main process: $@"

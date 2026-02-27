@@ -244,6 +244,10 @@ class NonHelmMapping:
             provider=ServiceProvider.ANTHROPIC,
             is_legacy=True,
         ),
+        "anthropic/claude-haiku-4-5-20251001": NonHelmModelInfo(
+            model_name="claude-haiku-4-5-20251001",
+            provider=ServiceProvider.ANTHROPIC,
+        ),
         # ------------------------
         # Google Gemini Models
         # ------------------------
