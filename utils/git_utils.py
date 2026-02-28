@@ -105,7 +105,19 @@ def git_commit(
         if branch_name:
             _checkout_branch(directory, branch_name)
 
-        # Stage changes
+        # Stage changes (remove broken submodule refs first)
+        gitmodules_path = directory / ".gitmodules"
+        if gitmodules_path.exists():
+            subprocess.run(
+                ["git", "submodule", "deinit", "-f", "--all"],
+                cwd=directory, capture_output=True, check=False,
+            )
+            gitmodules_path.unlink(missing_ok=True)
+            git_modules_dir = directory / ".git" / "modules"
+            if git_modules_dir.exists():
+                import shutil
+                shutil.rmtree(git_modules_dir, ignore_errors=True)
+
         if subfolder_to_commit:
             relative_path = str(subfolder_to_commit.relative_to(directory))
             _run_git_command(directory, ["add", relative_path])

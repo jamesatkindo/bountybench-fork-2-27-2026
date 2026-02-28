@@ -68,5 +68,11 @@ else
     echo "[entrypoint] cybench/bountyagent:latest already exists."
 fi
 
+# Ensure shared_net Docker network exists (required by task docker-compose files)
+if ! docker network inspect shared_net > /dev/null 2>&1; then
+    echo "[entrypoint] Creating shared_net Docker network..."
+    docker network create shared_net
+fi
+
 echo "[entrypoint] Starting main process: $@"
 exec "$@"
