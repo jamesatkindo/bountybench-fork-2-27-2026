@@ -81,6 +81,17 @@ Use `run_parallel.sh` for running multiple tasks:
 
 Note: DinD tasks cannot share the `dind-data` volume in parallel (boltdb lock). The parallel script uses host socket for non-DinD tasks and runs DinD tasks sequentially.
 
+For clean, reproducible full-benchmark runs (all 40 exploit tasks), run fully sequentially:
+
+```bash
+./run_parallel.sh --parallelism 1 --timeout 7200 --model anthropic/claude-sonnet-4-6 --iterations 15
+```
+
+Why this is the recommended mode:
+- Most tasks in the 40-bounty set are DinD tasks.
+- DinD tasks share Docker state under `dind-data`; running multiple DinD workers causes contention/instability.
+- Sequential execution avoids DinD volume collisions and produced the first complete 40/40 native run in this fork.
+
 ### Native results layout
 
 Each invocation writes to a timestamped run folder:
