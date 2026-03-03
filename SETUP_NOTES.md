@@ -81,10 +81,29 @@ Use `run_parallel.sh` for running multiple tasks:
 
 Note: DinD tasks cannot share the `dind-data` volume in parallel (boltdb lock). The parallel script uses host socket for non-DinD tasks and runs DinD tasks sequentially.
 
-For clean, reproducible full-benchmark runs (all 40 exploit tasks), run fully sequentially:
+For parity testing, use `scripts/run_parity_exploit.sh` (tiered subsets + normalized defaults):
 
 ```bash
-./run_parallel.sh --parallelism 1 --timeout 7200 --model anthropic/claude-sonnet-4-6 --iterations 15
+# 2-task smoke (fast, non-DinD only)
+./scripts/run_parity_exploit.sh --mode mechanical --tier tier0 --parallelism 2 --timeout 1800
+
+# 12-task Sonnet parity subset
+./scripts/run_parity_exploit.sh --mode parity --tier tier3 --parallelism 1 --timeout 7200
+
+# Full 40 Sonnet parity run
+./scripts/run_parity_exploit.sh --mode parity --tier full40 --parallelism 1 --timeout 7200
+```
+
+Tier design (for fast local loops):
+- `tier0`: 2 fast non-DinD tasks
+- `tier1`: 4 fast non-DinD tasks
+- `tier2`: 8 mixed tasks (first DinD coverage)
+- `tier3`: 12 mixed tasks for stronger signal
+
+For clean full-benchmark runs (all 40 exploit tasks), keep execution fully sequential:
+
+```bash
+./run_parallel.sh --parallelism 1 --timeout 7200 --model anthropic/claude-sonnet-4-6 --iterations 30
 ```
 
 Why this is the recommended mode:
@@ -114,6 +133,12 @@ workflow_metadata.workflow_summary.success == true
 
 If process exits `0` but native success is `false`, status is `OK`.
 
+For machine-readable summaries (pass rate, timing, phase-summary breakdown):
+
+```bash
+./scripts/summarize_native_run.py --run-dir results_parallel/run_<timestamp>
+```
+
 ### Current known-good run command (Sonnet 4.6)
 
 Run all 40 exploit tasks with native logging and stable sequencing:
@@ -123,7 +148,7 @@ Run all 40 exploit tasks with native logging and stable sequencing:
   --parallelism 1 \
   --timeout 7200 \
   --model anthropic/claude-sonnet-4-6 \
-  --iterations 15
+  --iterations 30
 ```
 
 Recommended prerequisites:
@@ -157,6 +182,12 @@ The main changes are in `run_parallel.sh`:
 - Auto-detects `docker` vs `sudo -n docker`.
 - Added `--env-file`, `--tar-path`, `--results-dir` args.
 
+6. Parity iteration normalization
+- `run_parallel.sh --iterations N` maps to BB `--phase_iterations N`.
+- In exploit workflow, a phase iteration is a single alternating turn across agents.
+- To give the executor ~15 turns (Harbor parity target), use `--iterations 30`.
+- Odd/even iteration counts change end-of-phase behavior (final-check path), so parity runs should use even `phase_iterations`.
+
 ## Known Issues
 
 ### cybench/bountyagent is arm64-only on Docker Hub
@@ -177,7 +208,7 @@ All fixes are in the `fix-dependency-drift` branch of the bountytasks fork:
 
 ## Latest Native Run Snapshot (March 3, 2026 UTC)
 
-Using `anthropic/claude-sonnet-4-6`, `--iterations 15`, sequential:
+Using `anthropic/claude-sonnet-4-6`, `--iterations 15`, sequential (historical baseline before phase-iteration normalization):
 
 - 40/40 exploit tasks completed
 - PASS: 8
